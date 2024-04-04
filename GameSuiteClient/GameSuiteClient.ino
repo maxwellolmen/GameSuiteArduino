@@ -1,35 +1,100 @@
-/*
-  SerialPassthrough sketch
+#include <EEPROM.h>
 
-  Some boards, like the Arduino 101, the MKR1000, Zero, or the Micro, have one
-  hardware serial port attached to Digital pins 0-1, and a separate USB serial
-  port attached to the IDE Serial Monitor. This means that the "serial
-  passthrough" which is possible with the Arduino UNO (commonly used to interact
-  with devices/shields that require configuration via serial AT commands) will
-  not work by default.
+// ESP to client codes
+#define NETWORK_ACK 0
 
-  This sketch allows you to emulate the serial passthrough behaviour. Any text
-  you type in the IDE Serial monitor will be written out to the serial port on
-  Digital pins 0 and 1, and vice-versa.
+// Client to ESP codes
+#define SET_NETWORK 0
+#define SET_NETWORK_LEN 96
 
-  On the 101, MKR1000, Zero, and Micro, "Serial" refers to the USB Serial port
-  attached to the Serial Monitor, and "Serial1" refers to the hardware serial
-  port attached to pins 0 and 1. This sketch will emulate Serial passthrough
-  using those two Serial ports on the boards mentioned above, but you can change
-  these names to connect any two serial ports on a board that has multiple ports.
+#define debugSerial Serial
+#define espSerial Serial1
 
-  created 23 May 2016
-  by Erik Nyquist
+struct WifiNetwork {
+    char ssid[32];
+    char pass[64];
+};
 
-  https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialPassthrough
-*/
+long millisOnStart;
+bool connected;
+bool verified;
 
 void setup() {
-  Serial.begin(115200);
+    debugSerial.begin(9600);
+    espSerial.begin(115200);
+    connected = false;
+    verified = false;
+    debugSerial.println(F("Started! Waiting for init ack from ESP..."));
+    
+    int count = 0;
+
+    do {
+        while (!espSerial.available()) {
+            delay(50);
+        }
+
+        char c = espSerial.read();
+
+        if (c != '\0') {
+            count = 0;
+        } else {
+            count++;
+        }
+    } while (count < 8);
+
+    millisOnStart = millis();
 }
 
 void loop() {
-  if (Serial.available()) {
-    Serial.write(Serial.read());
-  }
+    if (!connected && millis() - millisOnStart > 500) {
+        WifiNetwork network;
+        EEPROM.get(0, network);
+        // char ssid[33] = "Maxwell\0                        ";
+        // char pass[65] = "bigkev2019\0                                                     ";
+        setNetwork(network.ssid, network.pass);
+        connected = true;
+    }
+
+    if (espSerial.available() >= 2) {
+        byte command = espSerial.read();
+        debugSerial.print(F("Cmd "));
+        debugSerial.println(command);
+
+        byte length = espSerial.read();
+
+        while (espSerial.available() < length) {
+            delay(10);
+        }
+
+        char data[length];
+        espSerial.readBytes(data, length);
+
+        processESP(command, length, data);
+    }
+}
+
+void setNetwork(char* ssid, char* pass) {
+    debugSerial.println(F("Sending SET_NETWORK to connect to SSID 'Maxwell'..."));
+
+    espSerial.write(SET_NETWORK);
+    espSerial.write(SET_NETWORK_LEN);
+    espSerial.write("Maxwell\0                        ", 32);
+    espSerial.write("bigkev2019\0                                                     ", 64);
+}
+
+void processESP(byte command, byte length, char* data) {
+    switch (command) {
+        case NETWORK_ACK:
+            bool success = data[0];
+
+            if (!success) {
+                debugSerial.println(F("Network connection failed! Trying again..."));
+                connected = false;
+                verified = false;
+            } else {
+                debugSerial.println(F("Network connection successful!"));
+                verified = true;
+            }
+            break;
+    }
 }
