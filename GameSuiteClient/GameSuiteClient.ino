@@ -50,71 +50,87 @@ bool connected;
 bool verified;
 
 void setup() {
-  debugSerial.begin(9600);
-  espSerial.begin(115200);
-  connected = false;
-  verified = false;
-  debugSerial.println(F("Started! Waiting for init ack from ESP..."));
+    debugSerial.begin(9600);
+    espSerial.begin(115200);
+    connected = false;
+    verified = false;
+    debugSerial.println(F("Started! Waiting for init ack from ESP..."));
 
-  int count = 0;
-  myScreen.begin();
+    int firstBootFlag;
+    EEPROM.get(0, firstBootFlag);
 
-  myScreen.background(0, 0, 0);  // clear the screen
+    if (firstBootFlag != 3103) {
+        debugSerial.println(F("First boot! Default settings loading..."));
+        WifiNetwork network;
+
+        char ssid[] = "CIA-TAP\0                        ";
+        memcpy(&network.ssid, ssid, 32);
+
+        char pass[] = "minecraF44!\0                                                      ";
+        memcpy(&network.pass, pass, 64);
+
+        EEPROM.put(4, network);
+        EEPROM.put(0, (int) 3103);
+    }
+
+    int count = 0;
     myScreen.begin();
 
-  myScreen.background(0, 0, 0);
+    myScreen.background(0, 0, 0);  // clear the screen
+        myScreen.begin();
 
-  myScreen.stroke(255, 255, 255);
+    myScreen.background(0, 0, 0);
 
-  myScreen.setTextSize(2);
+    myScreen.stroke(255, 255, 255);
 
-  myScreen.text("Sensor Value : ", 0, 0);
+    myScreen.setTextSize(2);
 
-  myScreen.setTextSize(5);
-  do {
-    while (!espSerial.available()) {
-      delay(50);
-    }
+    myScreen.text("Sensor Value : ", 0, 0);
 
-    char c = espSerial.read();
+    myScreen.setTextSize(5);
+    do {
+        while (!espSerial.available()) {
+        delay(50);
+        }
 
-    if (c != '\0') {
-      count = 0;
-    } else {
-      count++;
-    }
-  } while (count < 8);
+        char c = espSerial.read();
 
-  millisOnStart = millis();
+        if (c != '\0') {
+        count = 0;
+        } else {
+        count++;
+        }
+    } while (count < 8);
 
+    millisOnStart = millis();
 }
 
 void loop() {
-  if (!connected && millis() - millisOnStart > 500) {
-    WifiNetwork network;
-    EEPROM.get(0, network);
-    // char ssid[33] = "Maxwell\0                        ";
-    // char pass[65] = "bigkev2019\0                                                     ";
-    setNetwork(network.ssid, network.pass);
-    connected = true;
-  }
-
-  if (espSerial.available() >= 2) {
-    byte command = espSerial.read();
-    debugSerial.print(F("Cmd "));
-    debugSerial.println(command);
-
-    byte length = espSerial.read();
-
-    while (espSerial.available() < length) {
-      delay(10);
+    if (!connected && millis() - millisOnStart > 500) {
+        WifiNetwork network;
+        EEPROM.get(4, network);
+        // char ssid[33] = "Maxwell\0                        ";
+        // char pass[65] = "bigkev2019\0                                                     ";
+        setNetwork(network.ssid, network.pass);
+        connected = true;
     }
 
-    char data[length];
-    espSerial.readBytes(data, length);
+    if (espSerial.available() >= 2) {
+        byte command = espSerial.read();
+        debugSerial.print(F("Cmd "));
+        debugSerial.println(command);
 
-    processESP(command, length, data);
-  }
+        byte length = espSerial.read();
+
+        while (espSerial.available() < length) {
+            delay(10);
+        }
+
+        char data[length];
+        espSerial.readBytes(data, length);
+
+        processESP(command, length, data);
+    }
 }
 
 void setNetwork(char* ssid, char* pass) {

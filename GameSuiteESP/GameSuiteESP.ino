@@ -1,6 +1,3 @@
-#include <UTFT.h>
-#include <memorysaver.h>
-
 #include <ESP8266WiFi.h>
 
 // Client to ESP codes
