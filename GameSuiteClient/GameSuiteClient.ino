@@ -74,12 +74,14 @@ void loop() {
 }
 
 void setNetwork(char* ssid, char* pass) {
-    debugSerial.println(F("Sending SET_NETWORK to connect to SSID 'Maxwell'..."));
+    debugSerial.print(F("Sending SET_NETWORK to connect to SSID '"));
+    debugSerial.print(ssid);
+    debugSerial.println("'...");
 
     espSerial.write(SET_NETWORK);
     espSerial.write(SET_NETWORK_LEN);
-    espSerial.write("Maxwell\0                        ", 32);
-    espSerial.write("bigkev2019\0                                                     ", 64);
+    espSerial.write(ssid, 32);
+    espSerial.write(pass, 64);
 }
 
 void processESP(byte command, byte length, char* data) {

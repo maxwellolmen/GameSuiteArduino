@@ -1,10 +1,18 @@
+#include <UTFT.h>
+#include <memorysaver.h>
+
 #include <ESP8266WiFi.h>
 
 // Client to ESP codes
 #define SET_NETWORK 0
+#define SERVER_REQUEST 1
 
 // ESP to client codes
 #define NETWORK_ACK 0
+#define SERVER_RESPONSE 1
+#define SERVER_ACK 2
+
+// ESP to client static lengths
 #define NETWORK_ACK_LEN 1
 
 #define HOST "maxwellolmen.com"
@@ -37,51 +45,17 @@ void loop() {
         processCommand(command, length, data);
     }
 
-    // Serial.print("connecting to ");
-    // Serial.print(host);
-    // Serial.print(':');
-    // Serial.println(port);
+    if (client.available()) {
+        byte command = client.read();
+        byte length = client.read();
 
-    // // Use WiFiClient class to create TCP connections
-    // WiFiClient client;
-    // if (!client.connect(host, port)) {
-    //     Serial.println("connection failed");
-    //     delay(5000);
-    //     return;
-    // }
+        byte data[length];
+        client.readBytes(data, length);
 
-    // // This will send a string to the server
-    // Serial.println("sending data to server");
-    // if (client.connected()) { client.println("Hey!"); }
-
-    // // wait for data to be available
-    // unsigned long timeout = millis();
-    // while (client.available() == 0) {
-    //     if (millis() - timeout > 5000) {
-    //         Serial.println(">>> Client Timeout !");
-    //         client.stop();
-    //         delay(60000);
-    //         return;
-    //     }
-    // }
-
-    // // Read all the lines of the reply from server and print them to Serial
-    // Serial.println("receiving from remote server");
-    // // not testing 'client.connected()' since we do not need to send data here
-    // while (client.available()) {
-    //     char ch = static_cast<char>(client.read());
-    //     Serial.print(ch);
-    // }
-
-    // // Close the connection
-    // Serial.println();
-    // Serial.println("closing connection");
-    // client.stop();
-
-    // if (wait) {
-    //     delay(300000);  // execute once every 5 minutes, don't flood remote service
-    // }
-    // wait = true;
+        Serial.write(SERVER_RESPONSE);
+        Serial.write(length);
+        Serial.write(data, length);
+    }
 }
 
 void processCommand(byte command, byte length, char* data) {
@@ -101,6 +75,9 @@ void processCommand(byte command, byte length, char* data) {
             Serial.println(pass);*/
 
             connectWifi(ssid, pass);
+            break;
+        case SERVER_REQUEST:
+            client.write(data, length);
             break;
     }
 }
@@ -142,5 +119,10 @@ void connectWifi(char* ssid, char* pass) {
     Serial.println(F("WiFi connected"));
     Serial.println(F("IP address: "));
     Serial.println(WiFi.localIP());*/
-}
 
+    client.connect(HOST, PORT);
+
+    while (!client.connected()) {
+        delay(50);
+    }
+}
