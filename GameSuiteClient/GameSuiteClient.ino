@@ -100,15 +100,9 @@ void setup() {
 
   int count = 0;
 
-  do {
-    while (!espSerial.available()) {
-      delay(50);
-    }
-
-    myScreen.setTextSize(5);
     do {
         while (!espSerial.available()) {
-        delay(50);
+            delay(50);
         }
 
         char c = espSerial.read();
