@@ -4,16 +4,20 @@
 // ESP to client codes
 #define NETWORK_ACK 0
 #define SERVER_RESPONSE 1
-
+#define SERVER_ACK 2
 
 // Client to ESP codes
 #define SET_NETWORK 0
 #define SET_NETWORK_LEN 96
+#define SERVER_REQUEST 1
 
 #define debugSerial Serial
 #define espSerial Serial1
 
-//Server Client commands
+// Client to Server commands
+#define PING 0
+
+// Server to Client commands
 #define PONG 0
 
 // pin definition for the Leonardo
@@ -45,7 +49,8 @@ struct WifiNetwork {
 long millisOnStart;
 bool connected;
 bool verified;
-
+bool pinged = false;
+bool serverConnected = false;
 
 void printDebug(char * message){
     debugSerial.println(message);
@@ -72,6 +77,8 @@ void printDebug(char * message){
 //320Y
 //480X
 void setup() {
+    // Uncomment to reset settings
+    // EEPROM.put(0, (int) 0);
   debugSerial.begin(9600);
   espSerial.begin(115200);
   connected = false;
@@ -88,13 +95,13 @@ void setup() {
         debugSerial.println(F("First boot! Default settings loading..."));
         WifiNetwork network;
 
-        char ssid[] = "CIA-TAP\0                        ";
+        char ssid[] = "Maxwell\0                        ";
         memcpy(&network.ssid, ssid, 32);
 
-        char pass[] = "minecraF44!\0                                                      ";
+        char pass[] = "bigkev2019\0                                                     ";
         memcpy(&network.pass, pass, 64);
 
-        EEPROM.put(4, network);
+        EEPROM.put(8, network);
         EEPROM.put(0, (int) 3103);
     }
 
@@ -120,7 +127,7 @@ void setup() {
 void loop() {
     if (!connected && millis() - millisOnStart > 500) {
         WifiNetwork network;
-        EEPROM.get(4, network);
+        EEPROM.get(8, network);
         // char ssid[33] = "Maxwell\0                        ";
         // char pass[65] = "bigkev2019\0                                                     ";
         setNetwork(network.ssid, network.pass);
@@ -143,12 +150,24 @@ void loop() {
 
         processESP(command, length, data);
     }
+
+    if (serverConnected && !pinged) {
+        while (true) {
+            debugSerial.println("SENDING PING!");
+            espSerial.write(SERVER_REQUEST);
+            espSerial.write(2);
+            espSerial.write(PING);
+            espSerial.write(0);
+            pinged = true;
+            delay(1500);
+        }
+    }
 }
 
 void setNetwork(char* ssid, char* pass) {
-    printDebug("Sending SET_NETWORK to connect to SSID '");
-    printDebug(ssid);
-    printDebug("'...");
+    debugSerial.print("Sending SET_NETWORK to connect to SSID '");
+    debugSerial.print(ssid);
+    debugSerial.println("'...");
 
     espSerial.write(SET_NETWORK);
     espSerial.write(SET_NETWORK_LEN);
@@ -157,27 +176,40 @@ void setNetwork(char* ssid, char* pass) {
 }
 
 void processServerCommand(byte command, byte length, char * data){
-  if (command == PONG){
+  if (command == PONG) {
     printDebug("PONG");
   }
 }
 
 void processESP(byte command, byte length, char* data) {
-  switch (command) {
-    case NETWORK_ACK:
-      bool success = data[0];
+    debugSerial.println("PROCESS ESP");
+    debugSerial.println(command);
 
-      if (!success) {
-        printDebug("Network connection failed! Trying again...");
-        connected = false;
-        verified = false;
-      } else {
-        printDebug("Network connection successful!");
-        verified = true;
-      }
-      break;
-    case SERVER_RESPONSE:
-      byte serverCommand = data[0];
-      processServerCommand(serverCommand, length, data);
-  }
+    if (command == NETWORK_ACK) {
+        debugSerial.println("NETWORK ACK");
+        byte success = data[0];
+
+        if (success == 0) {
+            printDebug("Network connection failed! Trying again...");
+            connected = false;
+            verified = false;
+        } else {
+            printDebug("Network connection successful!");
+            verified = true;
+        }
+    } else if (command == SERVER_RESPONSE) {
+        debugSerial.println("SERVER RESPONSE");
+        byte serverCommand = data[0];
+        processServerCommand(serverCommand, length, data);
+    } else if (command == SERVER_ACK) {
+        debugSerial.println("SERVER ACK");
+        bool connectSuccess = data[0];
+
+        debugSerial.println(connectSuccess);
+
+        if (connectSuccess) {
+            debugSerial.println("SERVER CONNECTED!");
+            serverConnected = true;
+        }
+    }
 }
