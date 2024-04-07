@@ -1,5 +1,13 @@
 #include <EEPROM.h>
 #include <UTFT.h>
+#include <LiquidCrystal.h>
+#include "SuiteLCD.h"
+#include "SuiteTFT.h"
+#include "SuiteClient.h"
+
+// DEFINES FOR LCD/UTFT
+#define LCD 1
+// #define TFT 1
 
 // ESP to client codes
 #define NETWORK_ACK 0
@@ -20,13 +28,16 @@
 // Server to Client commands
 #define PONG 0
 
-// pin definition for the Leonardo
-// #define CS   7
-// #define DC   0
-// #define RESET  1
+// LCD SEGMENT
+#ifdef LCD
+SuiteLCD lcd1;
+SuiteLCD lcd2;
+#endif
 
-UTFT myScreen(CTE40, 38, 39, 40, 41);
-extern uint8_t BigFont[];
+// UTFT SEGMENT
+#ifdef TFT
+SuiteTFT tft;
+#endif
 
 // initial position of the point is the middle of the screen
 // initial position of the point is the middle of the screen
@@ -52,43 +63,33 @@ bool verified;
 bool pinged = false;
 bool serverConnected = false;
 
-void printDebug(char * message){
+void printDebug(char* message) {
     debugSerial.println(message);
-    myScreen.fillScr(255, 0 ,0);
-    myScreen.setColor(0, 0, 0);
-    myScreen.print(message, 240, 0);
 
-    int yCoord = 0;
-    int length = strlen(message);
+    #ifdef LCD
+    lcd1.printDebug(message);
+    #endif
 
-    while (length > 30) {
-        char submessage[31];
-        memcpy(submessage, message, 30);
-        submessage[30] = '\0';
-
-        myScreen.print(submessage, 0, yCoord);
-        length -= 30;
-        yCoord += 16;
-        message += 30;
-    }
-
-    myScreen.print(message, 0, yCoord);
+    #ifdef TFT
+    tft.printDebug(message);
+    #endif
 }
+
 //320Y
 //480X
 void setup() {
     // Uncomment to reset settings
     // EEPROM.put(0, (int) 0);
-  debugSerial.begin(9600);
-  espSerial.begin(115200);
-  connected = false;
-  verified = false;
-  myScreen.InitLCD();
-  myScreen.setBackColor(255, 255, 255);
-  myScreen.setFont(BigFont);
-  printDebug("Started! Waiting for init ack from ESP...");
+    debugSerial.begin(9600);
+    espSerial.begin(115200);
+    connected = false;
+    verified = false;
 
-  int firstBootFlag;
+    lcd1.printDebug("FIRST SCREEN");
+    lcd2.printDebug("SECOND SCREEN");
+    debugSerial.println("Started! Waiting for init ack from ESP...");
+
+    int firstBootFlag;
     EEPROM.get(0, firstBootFlag);
 
     if (firstBootFlag != 3103) {
@@ -105,7 +106,7 @@ void setup() {
         EEPROM.put(0, (int) 3103);
     }
 
-  int count = 0;
+    int count = 0;
 
     do {
         while (!espSerial.available()) {
@@ -115,9 +116,9 @@ void setup() {
         char c = espSerial.read();
 
         if (c != '\0') {
-        count = 0;
+            count = 0;
         } else {
-        count++;
+            count++;
         }
     } while (count < 8);
 
@@ -162,6 +163,8 @@ void loop() {
             delay(1500);
         }
     }
+
+    // handle input from modules
 }
 
 void setNetwork(char* ssid, char* pass) {
