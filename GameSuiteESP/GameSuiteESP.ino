@@ -1,6 +1,3 @@
-#include <UTFT.h>
-#include <memorysaver.h>
-
 #include <ESP8266WiFi.h>
 
 // Client to ESP codes
@@ -14,6 +11,7 @@
 
 // ESP to client static lengths
 #define NETWORK_ACK_LEN 1
+#define SERVER_ACK_LEN 1
 
 #define HOST "maxwellolmen.com"
 #define PORT 1337
@@ -53,6 +51,8 @@ void loop() {
         client.readBytes(data, length);
 
         Serial.write(SERVER_RESPONSE);
+        Serial.write(length + 2);
+        Serial.write(command);
         Serial.write(length);
         Serial.write(data, length);
     }
@@ -125,4 +125,7 @@ void connectWifi(char* ssid, char* pass) {
     while (!client.connected()) {
         delay(50);
     }
+
+    byte serverAck[] = {SERVER_ACK, SERVER_ACK_LEN, 1};
+    Serial.write(serverAck, 3);
 }
