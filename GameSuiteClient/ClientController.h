@@ -1,8 +1,10 @@
-#include "SuiteTFT.h"
+#ifndef CLIENT_CONTROLLER_H
+#define CLIENT_CONTROLLER_H
+
 #include "Arduino.h"
 #include "SuiteClient.h"
 
-class ClientController{
+class ClientController {
     public:
         ClientController(SuiteClient * client){
             this->client = client;
@@ -13,3 +15,5 @@ class ClientController{
     SuiteClient * client = nullptr;
     SuiteTFT tft;
 };
+
+#endif

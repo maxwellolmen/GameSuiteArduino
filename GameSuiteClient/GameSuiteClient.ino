@@ -5,6 +5,7 @@
 #include "SuiteTFT.h"
 #include "SuiteClient.h"
 #include "SuiteIO.h"
+#include "ClientController.h"
 
 // DEFINES FOR LCD/UTFT
 #define LCD
