@@ -22,11 +22,7 @@
 #define debugSerial Serial
 #define espSerial Serial1
 
-// Client to Server commands
-#define PING 0
 
-// Server to Client commands
-#define PONG 0
 
 // LCD SEGMENT
 #ifdef LCD
@@ -38,6 +34,8 @@ SuiteLCD lcd2;
 #ifdef TFT
 SuiteTFT tft;
 #endif
+
+SuiteClient client(&espSerial);
 
 // initial position of the point is the middle of the screen
 // initial position of the point is the middle of the screen
@@ -154,6 +152,7 @@ void loop() {
 
     if (serverConnected && !pinged) {
         while (true) {
+            client.sendCommand(PING, NULL);
             debugSerial.println("SENDING PING!");
             espSerial.write(SERVER_REQUEST);
             espSerial.write(2);
@@ -178,12 +177,6 @@ void setNetwork(char* ssid, char* pass) {
     espSerial.write(pass, 64);
 }
 
-void processServerCommand(byte command, byte length, char * data){
-  if (command == PONG) {
-    printDebug("PONG");
-  }
-}
-
 void processESP(byte command, byte length, char* data) {
     debugSerial.println("PROCESS ESP");
     debugSerial.println(command);
@@ -202,8 +195,12 @@ void processESP(byte command, byte length, char* data) {
         }
     } else if (command == SERVER_RESPONSE) {
         debugSerial.println("SERVER RESPONSE");
+
         byte serverCommand = data[0];
-        processServerCommand(serverCommand, length, data);
+        byte serverData[length - 2];
+        memcpy(serverData, data + 2, length - 2);
+
+        client.handleServerCommand(serverCommand, length - 2, serverData);
     } else if (command == SERVER_ACK) {
         debugSerial.println("SERVER ACK");
         bool connectSuccess = data[0];
