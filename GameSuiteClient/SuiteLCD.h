@@ -1,26 +1,18 @@
+#ifndef SUITE_LCD_H
+#define SUITE_LCD_H
+
 #include <LiquidCrystal.h>
-
-#define RS1 13
-#define EN1 12
-#define D41 11
-#define D51 10
-#define D61 9
-#define D71 8
-
-#define RS2 52
-#define EN2 53
-#define D42 50
-#define D52 51
-#define D62 48
-#define D72 49
+#include <Arduino.h>
 
 class SuiteLCD {
     public:
-        SuiteLCD() : screen(RS1, EN1, D41, D51, D61, D71) {
-            
+        SuiteLCD(int rs, int en, int d4, int d5, int d6, int d7) : screen(rs, en, d4, d5, d6, d7) {
+            screen.begin(16, 2);
         }
 
         void printDebug(char* message);
     private:
         LiquidCrystal screen;
 };
+
+#endif

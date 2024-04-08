@@ -4,12 +4,13 @@
 #include "SuiteLCD.h"
 #include "SuiteTFT.h"
 #include "SuiteClient.h"
+#include "SuiteIO.h"
 
 // DEFINES FOR LCD/UTFT
-#define LCD 1
-// #define TFT 1
+#define LCD
+// #define TFT
 
-// ESP to client codes
+// ESP to client codes/Users/maxwellolmen/Documents/GitHub/GameSuiteArduino/GameSuiteClient/SuiteIO.h
 #define NETWORK_ACK 0
 #define SERVER_RESPONSE 1
 #define SERVER_ACK 2
@@ -22,12 +23,25 @@
 #define debugSerial Serial
 #define espSerial Serial1
 
+// LCD pin defines
+#define RS1 13
+#define EN1 12
+#define D41 11
+#define D51 10
+#define D61 9
+#define D71 8
 
+#define RS2 52
+#define EN2 53
+#define D42 50
+#define D52 51
+#define D62 48
+#define D72 49
 
 // LCD SEGMENT
 #ifdef LCD
-SuiteLCD lcd1;
-SuiteLCD lcd2;
+SuiteLCD lcd1(RS1, EN1, D41, D51, D61, D71);
+SuiteLCD lcd2(RS2, EN2, D42, D52, D62, D72);
 #endif
 
 // UTFT SEGMENT
@@ -35,7 +49,21 @@ SuiteLCD lcd2;
 SuiteTFT tft;
 #endif
 
-SuiteClient client(&espSerial);
+SuiteIO io = {
+    #ifdef LCD
+    &lcd1,
+    &lcd2,
+    #endif
+
+    #ifdef TFT
+    &tft,
+    #endif
+
+    &debugSerial,
+    &espSerial
+};
+
+SuiteClient client(&espSerial, &io);
 
 // initial position of the point is the middle of the screen
 // initial position of the point is the middle of the screen
@@ -73,6 +101,14 @@ void printDebug(char* message) {
     #endif
 }
 
+#ifdef LCD
+void printDebug2(char* message) {
+    debugSerial.println(message);
+
+    lcd2.printDebug(message);
+}
+#endif
+
 //320Y
 //480X
 void setup() {
@@ -83,9 +119,12 @@ void setup() {
     connected = false;
     verified = false;
 
-    lcd1.printDebug("FIRST SCREEN");
-    lcd2.printDebug("SECOND SCREEN");
-    debugSerial.println("Started! Waiting for init ack from ESP...");
+    delay(100);
+
+    analogWrite(2, 30);
+    
+    printDebug("Waiting for ESP...");
+    printDebug2("SECOND SCREEN!");
 
     int firstBootFlag;
     EEPROM.get(0, firstBootFlag);
@@ -94,10 +133,10 @@ void setup() {
         debugSerial.println(F("First boot! Default settings loading..."));
         WifiNetwork network;
 
-        char ssid[] = "Maxwell\0                        ";
+        char ssid[] = "CIA-TAP\0                        ";
         memcpy(&network.ssid, ssid, 32);
 
-        char pass[] = "bigkev2019\0                                                     ";
+        char pass[] = "minecraF44!\0                                                    ";
         memcpy(&network.pass, pass, 64);
 
         EEPROM.put(8, network);
@@ -135,10 +174,13 @@ void loop() {
 
     if (espSerial.available() >= 2) {
         byte command = espSerial.read();
+        printDebug2("Command         Received");
         debugSerial.print(F("Cmd "));
         debugSerial.println(command);
 
         byte length = espSerial.read();
+        debugSerial.print(F("Length "));
+        debugSerial.println(length);
 
         while (espSerial.available() < length) {
             delay(10);
@@ -151,25 +193,19 @@ void loop() {
     }
 
     if (serverConnected && !pinged) {
-        while (true) {
-            client.sendCommand(PING, NULL);
-            debugSerial.println("SENDING PING!");
-            espSerial.write(SERVER_REQUEST);
-            espSerial.write(2);
-            espSerial.write(PING);
-            espSerial.write(0);
-            pinged = true;
-            delay(1500);
-        }
+        client.sendCommand(PING, 0, NULL);
+        printDebug2("SENDING PING");
+        pinged = true;
     }
 
     // handle input from modules
 }
 
 void setNetwork(char* ssid, char* pass) {
-    debugSerial.print("Sending SET_NETWORK to connect to SSID '");
+    printDebug("Sent SET_NETWORK");
+    debugSerial.print(F("Sending SET_NETWORK to connect to SSID '"));
     debugSerial.print(ssid);
-    debugSerial.println("'...");
+    debugSerial.println(F("'..."));
 
     espSerial.write(SET_NETWORK);
     espSerial.write(SET_NETWORK_LEN);
@@ -178,37 +214,39 @@ void setNetwork(char* ssid, char* pass) {
 }
 
 void processESP(byte command, byte length, char* data) {
-    debugSerial.println("PROCESS ESP");
+    debugSerial.println(F("PROCESS ESP"));
     debugSerial.println(command);
 
     if (command == NETWORK_ACK) {
-        debugSerial.println("NETWORK ACK");
+        debugSerial.println(F("NETWORK ACK"));
         byte success = data[0];
 
         if (success == 0) {
-            printDebug("Network connection failed! Trying again...");
+            debugSerial.println(F("Network connection failed! Trying again..."));
             connected = false;
             verified = false;
         } else {
-            printDebug("Network connection successful!");
+            debugSerial.println(F("Network connection successful!"));
             verified = true;
         }
     } else if (command == SERVER_RESPONSE) {
-        debugSerial.println("SERVER RESPONSE");
+        debugSerial.println(F("SERVER RESPONSE"));
 
         byte serverCommand = data[0];
-        byte serverData[length - 2];
-        memcpy(serverData, data + 2, length - 2);
+        debugSerial.println(serverCommand);
+        debugSerial.println(length);
+        // byte serverData[length - 2];
+        /*memcpy(serverData, data + 2, length - 2);
 
-        client.handleServerCommand(serverCommand, length - 2, serverData);
+        client.handleServerCommand(serverCommand, length - 2, serverData);*/
     } else if (command == SERVER_ACK) {
-        debugSerial.println("SERVER ACK");
+        debugSerial.println(F("SERVER ACK"));
         bool connectSuccess = data[0];
 
         debugSerial.println(connectSuccess);
 
         if (connectSuccess) {
-            debugSerial.println("SERVER CONNECTED!");
+            debugSerial.println(F("SERVER CONNECTED!"));
             serverConnected = true;
         }
     }

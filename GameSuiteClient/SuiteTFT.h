@@ -1,4 +1,8 @@
+#ifndef SUITE_TFT_H
+#define SUITE_TFT_H
+
 #include <UTFT.h>
+#include <Arduino.h>
 
 extern uint8_t BigFont[];
 
@@ -14,3 +18,5 @@ class SuiteTFT {
     private:
         UTFT screen;
 };
+
+#endif
