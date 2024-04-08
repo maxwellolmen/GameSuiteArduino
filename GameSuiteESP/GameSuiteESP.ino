@@ -43,18 +43,24 @@ void loop() {
         processCommand(command, length, data);
     }
 
-    if (client.available()) {
+    if (client.available() > 2) {
         byte command = client.read();
         byte length = client.read();
-
-        byte data[length];
-        client.readBytes(data, length);
 
         Serial.write(SERVER_RESPONSE);
         Serial.write(length + 2);
         Serial.write(command);
         Serial.write(length);
-        Serial.write(data, length);
+
+        if (length != 0) {
+            while (client.available() < length) {
+                delay(10);
+            }
+            
+            byte data[length];
+            client.readBytes(data, length);
+            Serial.write(data, length);
+        }
     }
 }
 
