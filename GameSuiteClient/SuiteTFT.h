@@ -15,6 +15,10 @@ class SuiteTFT {
             screen.setBackColor(255, 255, 255);
             screen.setFont(BigFont);
         }
+
+        UTFT * getScreen(){
+            return &this->screen;
+        }
     private:
         UTFT screen;
 };

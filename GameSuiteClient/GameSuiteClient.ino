@@ -65,7 +65,7 @@ SuiteIO io = {
 };
 
 SuiteClient client(&espSerial, &io);
-
+ClientController clientController(&client);
 // initial position of the point is the middle of the screen
 // initial position of the point is the middle of the screen
 int xPos = 80;
