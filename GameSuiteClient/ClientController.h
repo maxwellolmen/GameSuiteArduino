@@ -27,6 +27,7 @@ class ClientController {
         void handleCommand(int command, char * data);
 
         void setController(GameController * gameController);
+
     private:
     SuiteClient * client = nullptr;
     SuiteTFT tft;

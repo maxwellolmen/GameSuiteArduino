@@ -19,6 +19,7 @@ class SuiteTFT {
         UTFT * getScreen(){
             return &this->screen;
         }
+
     private:
         UTFT screen;
 };

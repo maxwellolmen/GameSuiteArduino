@@ -5,3 +5,11 @@
 GameController::GameController(ClientController * clientController, SuiteTFT * tft) {
     this->clientController = clientController;
 }
+
+ClientController * GameController::getClientController(){
+    return this->clientController;
+}
+
+SuiteTFT * GameController::getTFT(){
+    return this->tft;
+}

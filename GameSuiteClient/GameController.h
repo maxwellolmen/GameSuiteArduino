@@ -14,11 +14,20 @@ class ClientController;
 
 class GameController{
     public:
+        //constructor sets up the client and screen
         GameController(ClientController * clientController, SuiteTFT * tft);
-        virtual void read(int command, char * data) = 0;
-        virtual void write(int command, char * data) = 0;
-        virtual void intializeGame() = 0;
-        virtual void destroyGame() = 0;
+        //reads from the server and executes a command
+        virtual void read(int command, char * data);
+        //writes to the server
+        virtual void write(int command, char * data);
+        //initializes the game and sets up resources necessary
+        virtual void intializeGame();
+        //clears up the game and frees resources necessary as well as resets the screen
+        virtual void destroyGame();
+        //returns the client controller in case the specific controller needs it 
+        ClientController * getClientController();
+        //returns the tft in case the current controller needs it
+        SuiteTFT * getTFT();
     private:
     ClientController * clientController;
     SuiteTFT * tft;
