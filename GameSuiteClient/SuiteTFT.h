@@ -4,6 +4,7 @@
 #include <UTFT.h>
 #include <Arduino.h>
 
+
 extern uint8_t BigFont[];
 
 class SuiteTFT {
@@ -20,6 +21,7 @@ class SuiteTFT {
             return &this->screen;
         }
 
+        void writeMessageCenter(String message, bool wrapAround);
     private:
         UTFT screen;
 };

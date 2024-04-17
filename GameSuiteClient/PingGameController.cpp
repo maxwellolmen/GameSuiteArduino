@@ -5,7 +5,8 @@
 
 
 void PingGameController::intializeGame(){
-
+    SuiteTFT * tft = GameController::getTFT();
+    tft->writeMessageCenter("HAROOO ANITA MAX WYNNN", false);
 }
 
 void PingGameController::destroyGame(){
@@ -21,5 +22,5 @@ void PingGameController::write(int command, char *data){
 }
 
 PingGameController::~PingGameController(){
-
+    PingGameController::destroyGame();
 }

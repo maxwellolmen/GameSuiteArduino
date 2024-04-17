@@ -10,6 +10,7 @@ class PingGameController: public GameController{
     PingGameController(ClientController * clientController, SuiteTFT * tft):GameController(clientController, tft){
         this->intializeGame();
     }
+    
     void intializeGame();
     void destroyGame();
     void write(int command, char *data);
